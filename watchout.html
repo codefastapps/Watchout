@@ -1,0 +1,233 @@
+<html>
+	<head>
+		<title>Watchout 21</title>
+		<script>			
+
+			////////////////////////////////////////////////////////////////////////////////
+			//
+			//	Flow of Control
+			//
+			////////////////////////////////////////////////////////////////////////////////
+			//
+			//	Events trigger positive States
+			//	
+			//	States are monitored by the Processing Engine
+			//
+			//	The Processing Engine fires Handlers for each positive State
+			//
+			//	Handlers reset States
+			//
+			////////////////////////////////////////////////////////////////////////////////
+
+				////////////////////////////////////////////////////////////////////////
+				//
+				//	STATE STORAGE
+				//
+				////////////////////////////////////////////////////////////////////////			
+			
+					stateStarting  = false;
+					stateClicking  = false;
+					statePausing   = false;
+					stateResuming  = false;
+					stateMoving    = false;
+			
+			////////////////////////////////////////////////////////////////////////////////
+			//
+			//	PROCESSING ENGINE	
+			//
+			////////////////////////////////////////////////////////////////////////////////
+
+				window.requestAnimFrame = (function(callback) {
+        				return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame ||
+        				function(callback) {
+          					window.setTimeout(callback, 1000 / 60);
+        				};
+      				})();
+				function funProcessingCycle(){
+					if(stateStarting){
+						funHandleStarting();
+					}else if(stateClicking){
+						funHandleClicking();
+					}else if(statePausing){
+						funHandlePausing();
+					}else if(stateResuming){
+						funHandleResuming();
+					}
+					if(stateMoving){
+						funHandleMoving();
+					}
+					requestAnimFrame(function() {
+						funProcessingCycle();
+        				});
+				}
+
+			////////////////////////////////////////////////////////////////////////////////
+			//
+			//	HANDLERS
+			//
+			////////////////////////////////////////////////////////////////////////////////		
+
+				function funHandleStarting(){
+					stateStarting = false;
+					// Moving
+					funHelpAddFullscreenCanvas(handleMovingId);
+					ctxMovingBox = funHelpGetCanvasContext(handleMovingId);
+					ctxMovingBox.fillStyle = "blue";
+					// Pause
+					funHelpAddFullscreenCanvas(handlePauseId);
+					ctxPauseButton = funHelpGetCanvasContext(handlePauseId);
+					ctxPauseButton.fillStyle = "red";
+					ctxPauseButton.fillRect(handlePauseX,handlePauseY,handlePauseWidth,handlePauseHeight);
+					// Resume
+					funHelpAddFullscreenCanvas(handleResumeId);
+					ctxResumeButton = funHelpGetCanvasContext(handleResumeId);
+					ctxResumeButton.fillStyle = "green";
+					stateMoving = true;
+				}
+				function funHandleClicking(){
+					stateClicking = false;
+					if(funHelpIsClicked(evtMouseX, evtMouseY, handlePauseX, handlePauseY, handlePauseWidth, handlePauseHeight)){
+						statePausing = true;
+					}else if(funHelpIsClicked(evtMouseX, evtMouseY, handleResumeX, handleResumeY, handleResumeWidth, handleResumeHeight)){
+						stateResuming = true;
+					}
+				}
+				function funHandlePausing(){
+					stateMoving = false;
+					statePausing = false;
+					// Pause
+					ctxPauseButton = funHelpGetCanvasContext(handlePauseId);
+					ctxPauseButton.clearRect(handlePauseX,handlePauseY,handlePauseWidth,handlePauseHeight);
+					// Resume
+					ctxResumeButton = funHelpGetCanvasContext(handleResumeId);
+					ctxResumeButton.fillRect(handleResumeX,handleResumeY,handleResumeWidth,handleResumeHeight);
+				}
+				function funHandleResuming(){
+					stateMoving = true;
+					stateResuming = false;
+					// Resume
+					ctxResumeButton = funHelpGetCanvasContext(handleResumeId);
+					ctxResumeButton.clearRect(handleResumeX,handleResumeY,handleResumeWidth,handleResumeHeight);
+					// Pause
+					ctxPauseButton = funHelpGetCanvasContext(handlePauseId);
+					ctxPauseButton.fillRect(handlePauseX,handlePauseY,handlePauseWidth,handlePauseHeight);
+				}
+				function funHandleMoving(){
+					ctxMovingBox = funHelpGetCanvasContext(handleMovingId);
+					ctxMovingBox.clearRect(handleMovingX,handleMovingY,handleMovingWidth,handleMovingHeight);
+					handleMovingX++;
+					handleMovingY++;
+					ctxMovingBox.fillRect(handleMovingX,handleMovingY,handleMovingWidth,handleMovingHeight);
+				}
+
+				////////////////////////////////////////////////////////////////////////
+				//
+				//	HANDLER STORAGE
+				//
+				////////////////////////////////////////////////////////////////////////
+
+					handleMovingId = "canvMoving";
+					handleMovingX = 10;
+					handleMovingY = 10;
+					handleMovingWidth = 20;
+					handleMovingHeight = 20;
+					handlePauseId = "canvPause";
+					handlePauseX = 100;
+					handlePauseY = 100;
+					handlePauseWidth = 100;
+					handlePauseHeight = 50;
+					handleResumeId = "canvResume";
+					handleResumeX = 200;
+					handleResumeY = 200;
+					handleResumeWidth = 100;
+					handleResumeHeight = 100;
+
+				////////////////////////////////////////////////////////////////////////
+				//
+				//	HANDLER HELPERS
+				//
+				////////////////////////////////////////////////////////////////////////		
+
+					function funHelpAddFullscreenCanvas(incCanvasId){
+						elmPageBody = document.getElementsByTagName('body')[0];
+						elmNewCanvas = document.createElement("canvas");
+						elmNewCanvas.style.position = "absolute";
+						elmNewCanvas.width = funHelpGetWindowWidth();
+						elmNewCanvas.height = funHelpGetWindowHeight();
+						elmNewCanvas.setAttribute("id",incCanvasId);
+						elmPageBody.appendChild(elmNewCanvas);
+					}
+					function funHelpGetCanvasContext(incCanvasId){
+						elmCanvas = document.getElementById(incCanvasId);
+						return elmCanvas.getContext("2d");
+					}
+					function funHelpGetWindowWidth(){
+						var w = window,
+    						d = document,
+    						e = d.documentElement,
+    						g = d.getElementsByTagName('body')[0];
+    						return w.innerWidth || e.clientWidth || g.clientWidth;
+					}
+					function funHelpGetWindowHeight(){
+						var w = window,
+    						d = document,
+    						e = d.documentElement,
+    						g = d.getElementsByTagName('body')[0];
+						return w.innerHeight|| e.clientHeight|| g.clientHeight;
+					}
+					function funHelpIsClicked(incMouseX, incMouseY, incTargetX, incTargetY, incTargetWidth, incTargetHeight){
+						if((incMouseX >= incTargetX) && (incMouseX <= (incTargetX + incTargetWidth))){
+							if((incMouseY >= incTargetY) && (incMouseY <= (incTargetY + incTargetHeight))){
+								return true;
+							}else{
+								return false
+							}
+						}else{
+							return false;
+						}
+					}
+					function funHelpGetRandomNumber(incMin, incMax){
+						return Math.floor(Math.random()*(incMax-incMin+1)+incMin);
+					}
+
+			////////////////////////////////////////////////////////////////////////////////
+			//
+			//	EVENTS
+			//
+			////////////////////////////////////////////////////////////////////////////////		
+
+				function funEventWindowLoad(){
+					stateStarting = true;
+					funProcessingCycle();
+				}
+				function funEventWindowClick(incEvent){
+					evtMouseX = incEvent.clientX;
+					evtMouseY = incEvent.clientY;
+					stateClicking = true;
+				}
+				window.onload		=	funEventWindowLoad;
+				window.onmousedown	=	funEventWindowClick;
+				
+				///////////////////////////////////////////////////////////////////////
+				//
+				//	EVENT STORAGE
+				//
+				///////////////////////////////////////////////////////////////////////
+
+					evtMouseX = 0;
+					evtMouseY = 0;		
+
+		</script>
+		<style>
+			html, 
+			body, 
+			canvas{
+				margin: 0;
+				padding: 0;
+				border: 0;
+			}
+		</style>
+	</head>
+	<body>
+	</body>
+</html>
